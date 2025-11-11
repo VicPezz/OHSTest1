@@ -1,79 +1,51 @@
-let SUPABASE_CONFIG = {
-  url: 'https://nydublhshqeejzpbsjvt.supabase.co', // Set via config.js or inline script
-  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55ZHVibGhzaHFlZWp6cGJzanZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4MDgwMjMsImV4cCI6MjA3ODM4NDAyM30.hdziOyIUahWSsqzUZOVeJ6NycCTD7rv4PVoTnW94leQ', // Set via config.js or inline script
-  edgeFunctionUrl: 'https://nydublhshqeejzpbsjvt.supabase.co/functions/v1/expand-rrules' // Set via config.js or inline script
+// Calendar client script (patched)
+// TODO: Move SUPABASE_CONFIG values to a secure config or runtime injection for production.
+
+const SUPABASE_CONFIG = {
+  url: 'https://nydublhshqeejzpbsjvt.supabase.co', // Your Supabase URL
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55ZHVibGhzaHFlZWp6cGJzanZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4MDgwMjMsImV4cCI6MjA3ODM4NDAyM30.hdziOyIUahWSsqzUZOVeJ6NycCTD7rv4PVoTnW94leQ', // <-- Replace securely (do not commit to public repo)
+  edgeFunctionUrl: 'https://nydublhshqeejzpbsjvt.supabase.co/functions/v1/expand-rrules' // Edge Function URL
 };
-
-// Try to load from window.SUPABASE_CONFIG (set by config.js or inline script)
-if (typeof window !== 'undefined' && window.SUPABASE_CONFIG) {
-  SUPABASE_CONFIG = window.SUPABASE_CONFIG;
-}
-
-let ADMIN_PASSWORD = 'CHANGE_THIS_PASSWORD';
-if (typeof window !== 'undefined' && window.ADMIN_PASSWORD) {
-  ADMIN_PASSWORD = window.ADMIN_PASSWORD;
-}
 
 // If you use module imports instead of a global injected script, you can import createClient:
 // import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 // const supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
-// Initialize Supabase client (requires Supabase JS library to be loaded)
+// Initialize Supabase client (requires Supabase JS library to be loaded as window.supabase or use module import)
 let supabase = null;
 
 function initializeSupabase() {
-  try {
-    // Method 1: Check if Supabase library is loaded via UMD CDN (exposes window.supabase)
-    if (typeof window.supabase !== 'undefined' && typeof window.supabase.createClient === 'function') {
+  // Prefer module import + createClient in production. This guard keeps compatibility with a global injected supabase.
+  if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+    try {
       supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
-      console.log('Supabase client initialized (UMD CDN - window.supabase)');
+      console.log('Supabase client initialized (global)');
       return true;
+    } catch (error) {
+      console.error('Failed to initialize Supabase client (global):', error);
+      return false;
     }
-    // Method 2: Check if createClient is available globally (ESM import or UMD)
-    if (typeof createClient !== 'undefined' && typeof createClient === 'function') {
+  } else if (typeof createClient !== 'undefined') {
+    // If you have a createClient in scope (e.g., module import), prefer it
+    try {
       supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
-      console.log('Supabase client initialized (global createClient)');
+      console.log('Supabase client initialized (module)');
       return true;
+    } catch (error) {
+      console.error('Failed to initialize Supabase client (module):', error);
+      return false;
     }
-    // Method 3: Try accessing via window.supabaseClient or similar
-    if (typeof window.supabaseClient !== 'undefined' && typeof window.supabaseClient.createClient === 'function') {
-      supabase = window.supabaseClient.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
-      console.log('Supabase client initialized (window.supabaseClient)');
-      return true;
-    }
-    // Method 4: Try using dynamic import if available
-    if (typeof window.supabase !== 'undefined' && window.supabase.default && typeof window.supabase.default.createClient === 'function') {
-      supabase = window.supabase.default.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
-      console.log('Supabase client initialized (window.supabase.default)');
-      return true;
-    }
-    
-    console.warn('Supabase JS library not found. Waiting for library to load...');
-    return false;
-  } catch (error) {
-    console.error('Failed to initialize Supabase client:', error);
-    return false;
-  }
-}
-
-// Wait for Supabase library to load, then initialize
-function waitForSupabaseAndInit(maxAttempts = 10, attempt = 0) {
-  if (initializeSupabase()) {
-    return;
-  }
-  
-  if (attempt < maxAttempts) {
-    setTimeout(() => waitForSupabaseAndInit(maxAttempts, attempt + 1), 100);
   } else {
-    console.error('Supabase library failed to load after multiple attempts. Please check that the Supabase JS library is included before this script.');
+    console.warn('Supabase JS library not found. Please include the Supabase JS library before this script or use a module import.');
+    return false;
   }
 }
 
 // Try to initialize immediately (if script loads after Supabase)
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => waitForSupabaseAndInit());
+  document.addEventListener('DOMContentLoaded', initializeSupabase);
 } else {
-  waitForSupabaseAndInit();
+  initializeSupabase();
 }
 
 // Global calendar events store
@@ -84,72 +56,8 @@ window.calendarEvents = [];
 // ============================================================================
 
 /**
- * Fetches events directly from Supabase events table
- * @param {Date|string} startDate
- * @param {Date|string} endDate
- * @returns {Promise<Array>} Array of occurrences with instanceId and originalEventId
- */
-async function fetchEventsFromSupabase(startDate, endDate) {
-  if (!supabase) {
-    throw new Error('Supabase client not initialized');
-  }
-
-  const start = startDate instanceof Date ? startDate.toISOString() : startDate;
-  const end = endDate instanceof Date ? endDate.toISOString() : endDate;
-
-  try {
-    // Query events table directly - get events that start within the date range
-    // or events that are recurring (rrule is not null)
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .gte('starts_at', start)
-      .lte('starts_at', end)
-      .order('starts_at', { ascending: true });
-
-    if (error) {
-      throw error;
-    }
-
-    if (!Array.isArray(data)) {
-      return [];
-    }
-
-    // Map events to consistent shape
-    return data.map(ev => {
-      const startISO = ev.starts_at;
-      const startDt = new Date(startISO);
-      const dateOnly = startDt.toISOString().split('T')[0];
-
-      return {
-        instanceId: `${ev.id}_${ev.starts_at}`, // unique occurrence id
-        originalEventId: ev.id, // original DB event id
-        date: dateOnly,
-        title: ev.title,
-        description: ev.description || null,
-        location: ev.location || null,
-        starts_at: startISO,
-        ends_at: ev.ends_at || null,
-        timezone: ev.timezone || 'UTC',
-        is_all_day: !!ev.is_all_day,
-        is_public: ev.is_public !== undefined ? ev.is_public : true,
-        extendedProps: {
-          description: ev.description || null,
-          location: ev.location || null,
-          timezone: ev.timezone || null,
-          is_public: ev.is_public
-        }
-      };
-    });
-  } catch (error) {
-    console.error('Error fetching events from Supabase:', error);
-    throw error;
-  }
-}
-
-/**
  * Fetches events from the Supabase Edge Function that expands RRULEs
- * Falls back to direct Supabase query if Edge Function fails
+ * Adds optional Authorization header when a user session exists.
  * @param {Date|string} startDate
  * @param {Date|string} endDate
  * @returns {Promise<Array>} Array of occurrences with instanceId and originalEventId
@@ -226,9 +134,8 @@ async function fetchEventsFromEdge(startDate, endDate) {
       };
     });
   } catch (error) {
-    console.warn('Edge Function failed, falling back to direct Supabase query:', error.message);
-    // Fallback to direct Supabase query
-    return await fetchEventsFromSupabase(startDate, endDate);
+    console.error('Error fetching events from Edge Function:', error);
+    throw error;
   }
 }
 
@@ -242,20 +149,8 @@ async function loadEventsForMonth(year, month) {
     const startDate = new Date(year, month, 1);
     const endDate = new Date(year, month + 1, 0, 23, 59, 59);
 
-    // Try Edge Function first, falls back to direct Supabase query if it fails
-    let occurrences = [];
-    try {
-      occurrences = await fetchEventsFromEdge(startDate, endDate);
-    } catch (error) {
-      console.warn('Failed to fetch events from Edge Function, trying direct query:', error.message);
-      // If Edge Function fails completely, try direct Supabase query
-      if (supabase) {
-        occurrences = await fetchEventsFromSupabase(startDate, endDate);
-      } else {
-        console.error('Supabase client not available. Cannot fetch events.');
-        return false;
-      }
-    }
+    // Fetch occurrences from Edge Function
+    const occurrences = await fetchEventsFromEdge(startDate, endDate);
 
     // Group by date
     const eventsByDate = new Map();
@@ -379,18 +274,7 @@ class CalendarApp {
   }
 
   async init() {
-    // Ensure Supabase is initialized before loading events
-    if (!supabase) {
-      const initialized = initializeSupabase();
-      if (!initialized) {
-        console.warn('Supabase not initialized. Retrying in 500ms...');
-        await new Promise(resolve => setTimeout(resolve, 500));
-        initializeSupabase();
-      }
-    }
-    
     await this.loadEvents();
-    this.buildEventMap();
     this.render();
     this.attachEventListeners();
     this.setupRealtimeSubscription();
@@ -399,62 +283,27 @@ class CalendarApp {
   setupRealtimeSubscription() {
     if (!supabase) {
       console.warn('Supabase client not available. Realtime updates disabled.');
-      // Retry initialization after a delay
-      setTimeout(() => {
-        if (initializeSupabase() && supabase) {
-          this.setupRealtimeSubscription();
-        }
-      }, 1000);
       return;
     }
 
     try {
-      // Clean up existing subscription if any
-      if (this.realtimeChannel) {
-        this.cleanup();
-      }
-
-      // Listen for table changes (postgres_changes) - INSERT, UPDATE, DELETE
+      // Listen for table changes (postgres_changes). If you migrated to broadcast triggers, adapt accordingly.
       this.realtimeChannel = supabase
         .channel('events:all')
         .on('postgres_changes',
           {
-            event: '*', // Listen to INSERT, UPDATE, DELETE
+            event: '*',
             schema: 'public',
             table: 'events'
           },
           (payload) => {
-            console.log('Realtime event received:', payload.eventType, payload);
+            console.log('Realtime event received:', payload);
 
-            // Handle DELETE events immediately
-            if (payload.eventType === 'DELETE') {
-              const deletedEventId = payload.old?.id;
-              console.log('Event deleted from Supabase:', deletedEventId);
-              
-              if (deletedEventId) {
-                // Remove all occurrences of this event from calendar
-                const beforeCount = window.calendarEvents.length;
-                window.calendarEvents = window.calendarEvents.filter(ev => {
-                  return ev.originalEventId !== deletedEventId;
-                });
-                const afterCount = window.calendarEvents.length;
-                console.log(`Removed ${beforeCount - afterCount} event occurrence(s) from calendar`);
-                
-                // Rebuild event map and render immediately
-                this.buildEventMap();
-                this.render();
-                refreshUpcomingEvents();
-              }
-              return;
-            }
-
-            // For INSERT and UPDATE, reload events (debounced)
+            // Debounce reloads to avoid flooding the Edge Function
             clearTimeout(this._realtimeReloadTimeout);
             this._realtimeReloadTimeout = setTimeout(async () => {
               try {
-                console.log('Reloading events after Supabase change...');
                 await this.loadEvents();
-                this.buildEventMap();
                 this.render();
                 refreshUpcomingEvents();
               } catch (err) {
@@ -465,12 +314,9 @@ class CalendarApp {
         )
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') {
-            console.log('Realtime subscription active - listening for changes to events table');
+            console.log('Realtime subscription active');
           } else if (status === 'CHANNEL_ERROR') {
-            console.error('Realtime subscription error:', status);
-          } else if (status === 'TIMED_OUT') {
-            console.warn('Realtime subscription timed out. Retrying...');
-            setTimeout(() => this.setupRealtimeSubscription(), 2000);
+            console.error('Realtime subscription error');
           }
         });
     } catch (error) {
@@ -761,9 +607,14 @@ async function deleteEventFromSupabase(eventId) {
   }
 }
 
-// Admin panel - password requirement removed
+// Admin panel (client-side password prompt remains for convenience but is not secure)
 function showPasswordPrompt() {
-  showAdminPanel();
+  const password = prompt('Enter admin password:');
+  if (password === '1234') {
+    showAdminPanel();
+  } else if (password !== null) {
+    alert('Incorrect password. Access denied.');
+  }
 }
 
 function formatEventDate(dateStr) {
@@ -955,24 +806,12 @@ function showAdminPanel() {
 
 // Initialize calendar when DOM is ready
 document.addEventListener('DOMContentLoaded', async function() {
-  // Ensure Supabase is initialized
   if (!supabase) {
-    const initialized = initializeSupabase();
-    if (!initialized) {
-      // Wait a bit more for Supabase library to load
-      await new Promise(resolve => setTimeout(resolve, 500));
-      initializeSupabase();
-    }
+    initializeSupabase();
   }
 
   const calendarContainer = document.getElementById('calendarApp');
   if (calendarContainer) {
     new CalendarApp('calendarApp');
   }
-  
-  // Also refresh upcoming events on Index.html if the element exists
-  if (document.getElementById('upcomingEventsList')) {
-    refreshUpcomingEvents();
-  }
-
 });
