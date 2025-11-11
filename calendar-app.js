@@ -1,7 +1,7 @@
 let SUPABASE_CONFIG = {
-  url: '', // Set via config.js or inline script
-  anonKey: '', // Set via config.js or inline script
-  edgeFunctionUrl: '' // Set via config.js or inline script
+  url: 'https://nydublhshqeejzpbsjvt.supabase.co', // Set via config.js or inline script
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55ZHVibGhzaHFlZWp6cGJzanZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4MDgwMjMsImV4cCI6MjA3ODM4NDAyM30.hdziOyIUahWSsqzUZOVeJ6NycCTD7rv4PVoTnW94leQ', // Set via config.js or inline script
+  edgeFunctionUrl: 'https://nydublhshqeejzpbsjvt.supabase.co/functions/v1/expand-rrules' // Set via config.js or inline script
 };
 
 // Try to load from window.SUPABASE_CONFIG (set by config.js or inline script)
@@ -974,4 +974,5 @@ document.addEventListener('DOMContentLoaded', async function() {
   if (document.getElementById('upcomingEventsList')) {
     refreshUpcomingEvents();
   }
+
 });
