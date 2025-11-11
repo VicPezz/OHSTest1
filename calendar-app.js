@@ -1,34 +1,3 @@
-// OHS Band & Orchestra Calendar App
-// Modern, efficient calendar implementation with Supabase integration
-//
-// ============================================================================
-// SETUP INSTRUCTIONS
-// ============================================================================
-// 1. Configure Supabase credentials below in SUPABASE_CONFIG
-// 2. Ensure your Supabase project has:
-//    - A 'public.events' table with columns: id, title, description, location,
-//      starts_at, ends_at, is_all_day, is_public, rrule, timezone
-//    - An RPC function 'get_events_between' that queries events
-//    - An Edge Function 'expand-rrules' that expands RRULE recurrences
-// 3. The Supabase JS library is already included in calendar.html and Index.html
-// 4. For private events: Set up Supabase Auth and add authentication headers
-//
-// ============================================================================
-// SUPABASE CONFIGURATION
-// ============================================================================
-// For GitHub Pages: Configuration is loaded from config.js (if available)
-// or can be set via inline script in HTML files before this script loads.
-//
-// To configure:
-// 1. Create a config.js file with:
-//    window.SUPABASE_CONFIG = { url: '...', anonKey: '...', edgeFunctionUrl: '...' };
-//    window.ADMIN_PASSWORD = 'your-password';
-// 2. Add config.js to .gitignore (do not commit secrets!)
-// 3. For GitHub Pages, you can inject config via inline script tag in HTML
-//
-// Fallback: If config.js is not found, these placeholder values will be used
-// (calendar will not work until properly configured)
-
 let SUPABASE_CONFIG = {
   url: '', // Set via config.js or inline script
   anonKey: '', // Set via config.js or inline script
@@ -792,18 +761,6 @@ async function deleteEventFromSupabase(eventId) {
   }
 }
 
-// Admin panel (client-side password prompt - not secure for production!)
-// SECURITY WARNING: Client-side password checks are not secure!
-// In production, implement proper server-side authentication.
-function showPasswordPrompt() {
-  const password = prompt('Enter admin password:');
-  if (password === ADMIN_PASSWORD) {
-    showAdminPanel();
-  } else if (password !== null) {
-    alert('Incorrect password. Access denied.');
-  }
-}
-
 function formatEventDate(dateStr) {
   function parseLocalDate(dateStr) {
     const [year, month, day] = dateStr.split('-').map(Number);
@@ -1012,4 +969,5 @@ document.addEventListener('DOMContentLoaded', async function() {
   if (document.getElementById('upcomingEventsList')) {
     refreshUpcomingEvents();
   }
+
 });
